@@ -19,8 +19,8 @@ const DEFAULT_GUIDELINES = `
 // Build a compact prompt for the LLM
 function buildPrompt({ files, guidelines = DEFAULT_GUIDELINES, scope = 'full', askFixes = true, askEffort = true }) {
   const header = `You are a senior code reviewer. Review the following ${scope} code and return JSON with findings.`;
-  const ask = `For each finding include: { id, file, lineStart, lineEnd, severity: one of [info, warn, error], title, description, guideline, recommendation, optionally fixPatch (unified diff), effortHours (number) }.`;
-  const extras = `${askFixes ? 'Propose fixPatch when feasible.' : ''} ${askEffort ? 'Estimate effortHours (0.1-8).' : ''}`.trim();
+  const ask = `For each finding include: { id, file, lineStart, lineEnd, severity: one of [info, warn, error], title, description, guideline, recommendation, optionally fixPatch (unified diff), effortHours (number), optionally docUpdate (string with suggested documentation updates if relevant) }.`;
+  const extras = `${askFixes ? 'Propose fixPatch when feasible.' : ''} ${askEffort ? 'Estimate effortHours (0.1-8).' : ''} Also, when applicable, suggest documentation updates (docUpdate) for README/CHANGELOG/docs.`.trim();
 
   const filesBlock = files.map((f, idx) => {
     const snippet = f.content.length > 12000 ? (f.content.slice(0, 12000) + "\n/* ...truncated... */") : f.content;
@@ -35,7 +35,9 @@ async function runAnalysis({ files, guidelines, scope }) {
     return { findings: [], meta: { tokensEstimated: 0, message: 'No files provided' } };
   }
   const prompt = buildPrompt({ files, guidelines, scope });
+  const t0 = Date.now();
   const llm = await callLLM(prompt);
+  const t1 = Date.now();
   let findings = [];
   try {
     // Try to parse JSON anywhere in the text
@@ -44,7 +46,10 @@ async function runAnalysis({ files, guidelines, scope }) {
   } catch (e) {
     findings = [];
   }
-  return { findings, meta: { raw: llm?.slice(0, 1000), model: process.env.OLLAMA_MODEL || 'unknown' } };
+  const promptChars = prompt?.length || 0;
+  const responseChars = llm?.length || 0;
+  const tokensEstimated = Math.ceil((promptChars + responseChars) / 4);
+  return { findings, meta: { raw: llm?.slice(0, 1000), model: process.env.OLLAMA_MODEL || 'unknown', durationMs: t1 - t0, promptChars, responseChars, tokensEstimated } };
 }
 
 async function assertAccessToFinding(req, findingId) {
