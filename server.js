@@ -44,12 +44,6 @@ const sequelize = require('./config/Database');
 // Ensure models are loaded so Sequelize is aware of them before sync()
 // If a model file is not required somewhere else before this point, its table won't be created during sync.
 require('./models/user');
-require('./models/resource');
-require('./models/resource_image');
-require('./models/resource_feature');
-require('./models/resource_coordinate');
-require('./models/resource_item');
-require('./models/resource_commentary');
 require('./models/reset_password_token');
 require('./models/review');
 require('./models/review_finding');
@@ -73,10 +67,6 @@ app.use('/auth', authRoutes);
 
 const userRoutes = require('./routes/User.js');
 app.use('/users', userRoutes);
-
-// Resource/public routes
-const resourceRoutes = require('./routes/Resource');
-app.use('/', resourceRoutes);
 
 // Mailer & password reset routes
 const { createMailer } = require('./config/Mailer');
