@@ -18,3 +18,16 @@ async function risky() {
   const r = await fetch('https://example.com'); // fără try/catch
   return r.text();
 }
+
+// style.js
+function veryLongFunctionNameThatDoesTooManyThingsAndIsHardToRead(paramOne, paramTwo, paramThree) {
+  // fără comentarii
+  const a = paramOne + paramTwo + paramThree; // logică complexă
+  return a;
+}
+
+// test.js
+function add(a, b) {
+  return a + b;
+}
+// lipsesc testele unitare pentru funcția add
