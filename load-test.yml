@@ -1,0 +1,9 @@
+config:
+  target: "http://localhost:8082"
+  phases:
+    - duration: 60                     
+      arrivalRate: 500 #change to 100, 250 and 500 if u wish to do the same tests i did                  
+scenarios:
+  - flow:
+    - get:
+        url: "/student/fetch/topics"

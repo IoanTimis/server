@@ -1,0 +1,8 @@
+{
+  "title": "Test Topic",
+  "description": "This is a test topic",
+  "keywords": "test, cypress, automation",
+  "slots": 5,
+  "education_level": "bsc",
+  "specialization_ids": [2]
+}

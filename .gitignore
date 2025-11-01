@@ -1,0 +1,48 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+
+# Logs
+logs/
+*.log
+yarn-debug.log*
+yarn-error.log*
+
+# uploaded images
+uploads/
+
+# Build files
+dist/
+.next/
+.output/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE-specific files
+.vscode/
+*.swp
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore all text files
+*.txt
+
+# Ignore sessions folder
+sessions
+
+#debugg files
+.vscode/launch.json
+
+#mysql file
+Mysql.sessions.sql
+

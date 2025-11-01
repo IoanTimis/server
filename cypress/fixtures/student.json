@@ -1,0 +1,6 @@
+{
+  "validRefreshToken": "mockValidRefreshToken",
+  "validAccessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InN0dWRlbnQiLCJzcGVjaWFsaXphdGlvbl9pZCI6MiwiZWR1Y2F0aW9uX2xldmVsIjoidW5kZXJncmFkdWF0ZSIsImlhdCI6MTc0MTI3ODA2MCwiZXhwIjoxNzQxMjgxNjYwfQ.CmZIow0rNbZIWXAAWZ-4RYNiCrxZ3uf46YSu3FoEMTA",
+  "validTopicId": "39",
+  "invalidTopicId": "999"
+}
