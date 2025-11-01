@@ -53,7 +53,32 @@ module.exports = {
     try {
       const { files = [], guidelines = DEFAULT_GUIDELINES, scope = 'full' } = req.body || {};
       const result = await runAnalysis({ files, guidelines, scope });
-      return res.json(result);
+      // Persist review + findings
+      const sequelize = require('../config/Database');
+      const Review = require('../models/review');
+      const ReviewFinding = require('../models/review_finding');
+      const saved = await sequelize.transaction(async (t) => {
+        const review = await Review.create({ scope, guidelines, meta: result.meta }, { transaction: t });
+        const review_id = review.id;
+        if (Array.isArray(result.findings) && result.findings.length > 0) {
+          const rows = result.findings.map((f) => ({
+            review_id,
+            file: f.file || null,
+            lineStart: f.lineStart || null,
+            lineEnd: f.lineEnd || null,
+            severity: ['info','warn','error'].includes(f.severity) ? f.severity : 'info',
+            title: f.title || null,
+            description: f.description || null,
+            guideline: f.guideline || null,
+            recommendation: f.recommendation || null,
+            fixPatch: f.fixPatch || null,
+            effortHours: typeof f.effortHours === 'number' ? f.effortHours : null,
+          }));
+          await ReviewFinding.bulkCreate(rows, { transaction: t });
+        }
+        return review;
+      });
+      return res.json({ reviewId: saved.id, ...result });
     } catch (err) {
       console.error('analyzeFiles error', err);
       return res.status(500).json({ error: 'Analyze failed', details: String(err?.message || err) });
@@ -66,7 +91,32 @@ module.exports = {
       const changes = getStagedChanges(repoPath);
       const files = changes.map(({ filePath, content }) => ({ path: filePath, content }));
       const result = await runAnalysis({ files, scope: 'incremental' });
-      return res.json({ ...result, changedFiles: changes.map(c => c.filePath) });
+      // Persist review + findings
+      const sequelize = require('../config/Database');
+      const Review = require('../models/review');
+      const ReviewFinding = require('../models/review_finding');
+      const saved = await sequelize.transaction(async (t) => {
+        const review = await Review.create({ scope: 'incremental', guidelines: DEFAULT_GUIDELINES, meta: { ...result.meta, changedFiles: changes.map(c => c.filePath) } }, { transaction: t });
+        const review_id = review.id;
+        if (Array.isArray(result.findings) && result.findings.length > 0) {
+          const rows = result.findings.map((f) => ({
+            review_id,
+            file: f.file || null,
+            lineStart: f.lineStart || null,
+            lineEnd: f.lineEnd || null,
+            severity: ['info','warn','error'].includes(f.severity) ? f.severity : 'info',
+            title: f.title || null,
+            description: f.description || null,
+            guideline: f.guideline || null,
+            recommendation: f.recommendation || null,
+            fixPatch: f.fixPatch || null,
+            effortHours: typeof f.effortHours === 'number' ? f.effortHours : null,
+          }));
+          await ReviewFinding.bulkCreate(rows, { transaction: t });
+        }
+        return review;
+      });
+      return res.json({ reviewId: saved.id, ...result, changedFiles: changes.map(c => c.filePath) });
     } catch (err) {
       console.error('analyzeStaged error', err);
       return res.status(500).json({ error: 'Staged analyze failed', details: String(err?.message || err) });
@@ -92,7 +142,32 @@ module.exports = {
       const selected = all.slice(0, maxFiles);
       const files = selected.map(p => ({ path: path.relative(repoPath, p), content: fs.readFileSync(p, 'utf8') }));
       const result = await runAnalysis({ files, scope: 'repository-sample' });
-      return res.json({ ...result, scanned: files.map(f => f.path) });
+      // Persist review + findings
+      const sequelize = require('../config/Database');
+      const Review = require('../models/review');
+      const ReviewFinding = require('../models/review_finding');
+      const saved = await sequelize.transaction(async (t) => {
+        const review = await Review.create({ scope: 'repository-sample', guidelines: DEFAULT_GUIDELINES, meta: { ...result.meta, scanned: files.map(f => f.path) } }, { transaction: t });
+        const review_id = review.id;
+        if (Array.isArray(result.findings) && result.findings.length > 0) {
+          const rows = result.findings.map((f) => ({
+            review_id,
+            file: f.file || null,
+            lineStart: f.lineStart || null,
+            lineEnd: f.lineEnd || null,
+            severity: ['info','warn','error'].includes(f.severity) ? f.severity : 'info',
+            title: f.title || null,
+            description: f.description || null,
+            guideline: f.guideline || null,
+            recommendation: f.recommendation || null,
+            fixPatch: f.fixPatch || null,
+            effortHours: typeof f.effortHours === 'number' ? f.effortHours : null,
+          }));
+          await ReviewFinding.bulkCreate(rows, { transaction: t });
+        }
+        return review;
+      });
+      return res.json({ reviewId: saved.id, ...result, scanned: files.map(f => f.path) });
     } catch (err) {
       console.error('analyzeRepo error', err);
       return res.status(500).json({ error: 'Repo analyze failed', details: String(err?.message || err) });

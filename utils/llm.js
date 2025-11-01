@@ -25,7 +25,8 @@ async function callLLM(prompt) {
     });
   }
   const base = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-  const model = process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b';
+  // Default to llama3 which is lightweight and widely available locally
+  const model = process.env.OLLAMA_MODEL || 'llama3';
   try {
     // Ollama generate endpoint
     const { data } = await axios.post(`${base}/api/generate`, {

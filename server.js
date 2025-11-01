@@ -51,11 +51,13 @@ require('./models/resource_coordinate');
 require('./models/resource_item');
 require('./models/resource_commentary');
 require('./models/reset_password_token');
+require('./models/review');
+require('./models/review_finding');
 
 
 // at first run you can set force true to make sure tables are created, might need to create the database first (make sure is the same name as in .env file)
 // after that set it to false to avoid dropping existing tables,
-sequelize.sync({ force: true, logging: console.log }) // Set force: true to drop tables and recreate them
+sequelize.sync({ force: false, logging: console.log }) // Use force: false to avoid dropping existing tables
     .then(() => {
         console.log('Database & tables created!');
     })
