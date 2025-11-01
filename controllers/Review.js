@@ -58,7 +58,8 @@ module.exports = {
       const Review = require('../models/review');
       const ReviewFinding = require('../models/review_finding');
       const saved = await sequelize.transaction(async (t) => {
-        const review = await Review.create({ scope, guidelines, meta: result.meta }, { transaction: t });
+        const ownerId = req.user?.id || null;
+        const review = await Review.create({ scope, guidelines, user_id: ownerId, meta: { ...(result.meta || {}), userId: ownerId } }, { transaction: t });
         const review_id = review.id;
         if (Array.isArray(result.findings) && result.findings.length > 0) {
           const rows = result.findings.map((f) => ({
@@ -96,7 +97,8 @@ module.exports = {
       const Review = require('../models/review');
       const ReviewFinding = require('../models/review_finding');
       const saved = await sequelize.transaction(async (t) => {
-        const review = await Review.create({ scope: 'incremental', guidelines: DEFAULT_GUIDELINES, meta: { ...result.meta, changedFiles: changes.map(c => c.filePath) } }, { transaction: t });
+        const ownerId = req.user?.id || null;
+        const review = await Review.create({ scope: 'incremental', guidelines: DEFAULT_GUIDELINES, user_id: ownerId, meta: { ...result.meta, userId: ownerId, changedFiles: changes.map(c => c.filePath) } }, { transaction: t });
         const review_id = review.id;
         if (Array.isArray(result.findings) && result.findings.length > 0) {
           const rows = result.findings.map((f) => ({
@@ -147,7 +149,8 @@ module.exports = {
       const Review = require('../models/review');
       const ReviewFinding = require('../models/review_finding');
       const saved = await sequelize.transaction(async (t) => {
-        const review = await Review.create({ scope: 'repository-sample', guidelines: DEFAULT_GUIDELINES, meta: { ...result.meta, scanned: files.map(f => f.path) } }, { transaction: t });
+        const ownerId = req.user?.id || null;
+        const review = await Review.create({ scope: 'repository-sample', guidelines: DEFAULT_GUIDELINES, user_id: ownerId, meta: { ...result.meta, userId: ownerId, scanned: files.map(f => f.path) } }, { transaction: t });
         const review_id = review.id;
         if (Array.isArray(result.findings) && result.findings.length > 0) {
           const rows = result.findings.map((f) => ({
