@@ -204,7 +204,9 @@ module.exports = {
   listComments: async (req, res) => {
     try {
       const findingId = parseInt(req.params.findingId, 10);
-      await assertAccessToFinding(req, findingId);
+      // Public access: only validate the finding exists
+      const finding = await ReviewFinding.findByPk(findingId);
+      if (!finding) return res.status(404).json({ error: 'Finding not found' });
       const User = require('../models/user');
       const comments = await ReviewComment.findAll({
         where: { finding_id: findingId },
@@ -222,7 +224,11 @@ module.exports = {
   addComment: async (req, res) => {
     try {
       const findingId = parseInt(req.params.findingId, 10);
-      const { finding, review } = await assertAccessToFinding(req, findingId);
+      // Public access: only validate entities exist
+      const finding = await ReviewFinding.findByPk(findingId);
+      if (!finding) return res.status(404).json({ error: 'Finding not found' });
+      const review = await Review.findByPk(finding.review_id);
+      if (!review) return res.status(404).json({ error: 'Parent review not found' });
       const text = String(req.body?.text || '').trim();
       if (!text) return res.status(400).json({ error: 'Text is required' });
       const created = await ReviewComment.create({ review_id: review.id, finding_id: finding.id, user_id: req.user?.id || null, action: 'comment', text });
