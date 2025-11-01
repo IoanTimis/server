@@ -205,7 +205,12 @@ module.exports = {
     try {
       const findingId = parseInt(req.params.findingId, 10);
       await assertAccessToFinding(req, findingId);
-      const comments = await ReviewComment.findAll({ where: { finding_id: findingId }, order: [['createdAt','ASC']] });
+      const User = require('../models/user');
+      const comments = await ReviewComment.findAll({
+        where: { finding_id: findingId },
+        order: [['createdAt','ASC']],
+        include: [{ model: User, as: 'author', attributes: ['id','first_name','name','email'] }]
+      });
       const status = computeFindingStatus(comments);
       res.json({ comments, status });
     } catch (err) {
@@ -220,7 +225,10 @@ module.exports = {
       const { finding, review } = await assertAccessToFinding(req, findingId);
       const text = String(req.body?.text || '').trim();
       if (!text) return res.status(400).json({ error: 'Text is required' });
-      const row = await ReviewComment.create({ review_id: review.id, finding_id: finding.id, user_id: req.user?.id || null, action: 'comment', text });
+      const created = await ReviewComment.create({ review_id: review.id, finding_id: finding.id, user_id: req.user?.id || null, action: 'comment', text });
+      // reload with author included
+      const User = require('../models/user');
+      const row = await ReviewComment.findByPk(created.id, { include: [{ model: User, as: 'author', attributes: ['id','first_name','name','email'] }] });
       res.json(row);
     } catch (err) {
       const code = err?.statusCode || 500;
