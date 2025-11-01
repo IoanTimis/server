@@ -53,7 +53,7 @@ router.get('/:id', async (req, res) => {
 
 // Comments & resolution routes (scoped)
 router.get('/finding/:findingId/comments', ReviewController.listComments);
-router.post('/finding/:findingId/comments', ReviewController.addComment);
+router.post('/finding/:findingId/comments', IsLogged, ReviewController.addComment);
 router.post('/finding/:findingId/resolve', IsLogged, ReviewController.resolveFinding);
 router.post('/finding/:findingId/reopen', IsLogged, ReviewController.reopenFinding);
 

@@ -224,7 +224,8 @@ module.exports = {
   addComment: async (req, res) => {
     try {
       const findingId = parseInt(req.params.findingId, 10);
-      // Public access: only validate entities exist
+      // Requires auth (enforced by route). Validate entities exist
+      if (!req.user?.id) return res.status(401).json({ error: 'Unauthorized' });
       const finding = await ReviewFinding.findByPk(findingId);
       if (!finding) return res.status(404).json({ error: 'Finding not found' });
       const review = await Review.findByPk(finding.review_id);
