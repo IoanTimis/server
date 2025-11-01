@@ -27,6 +27,7 @@ async function callLLM(prompt) {
   const base = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
   // Default to llama3 which is lightweight and widely available locally
   const model = process.env.OLLAMA_MODEL || 'llama3';
+  const httpTimeoutMs = parseInt(process.env.OLLAMA_HTTP_TIMEOUT_MS || '', 10) || 120_000;
   try {
     // Ollama generate endpoint
     const { data } = await axios.post(`${base}/api/generate`, {
@@ -38,7 +39,7 @@ async function callLLM(prompt) {
         top_p: 0.9,
         num_predict: 1024
       }
-    }, { timeout: 60_000 });
+    }, { timeout: httpTimeoutMs });
     return data?.response || '';
   } catch (err) {
     console.error('LLM call failed', err?.response?.data || err?.message || err);
