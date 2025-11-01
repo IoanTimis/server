@@ -47,6 +47,7 @@ require('./models/user');
 require('./models/reset_password_token');
 require('./models/review');
 require('./models/review_finding');
+require('./models/review_comment');
 
 
 // at first run you can set force true to make sure tables are created, might need to create the database first (make sure is the same name as in .env file)

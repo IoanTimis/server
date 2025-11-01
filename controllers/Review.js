@@ -3,6 +3,9 @@ const fs = require('fs');
 const { execSync } = require('child_process');
 const { callLLM } = require('../utils/llm');
 const { getStagedChanges } = require('../utils/git');
+const Review = require('../models/review');
+const ReviewFinding = require('../models/review_finding');
+const ReviewComment = require('../models/review_comment');
 
 // Default guidelines (can be replaced via request body)
 const DEFAULT_GUIDELINES = `
@@ -44,6 +47,32 @@ async function runAnalysis({ files, guidelines, scope }) {
   return { findings, meta: { raw: llm?.slice(0, 1000), model: process.env.OLLAMA_MODEL || 'unknown' } };
 }
 
+async function assertAccessToFinding(req, findingId) {
+  const finding = await ReviewFinding.findByPk(findingId);
+  if (!finding) throw new Error('Finding not found');
+  const review = await Review.findByPk(finding.review_id);
+  if (!review) throw new Error('Parent review not found');
+  const role = req.user?.role;
+  const userId = req.user?.id;
+  if (role !== 'admin' && review.user_id !== userId) {
+    const err = new Error('Forbidden');
+    // @ts-ignore
+    err.statusCode = 403;
+    throw err;
+  }
+  return { finding, review };
+}
+
+function computeFindingStatus(comments = []) {
+  // default open; last action wins
+  let status = 'open';
+  for (const c of comments) {
+    if (c.action === 'resolve') status = 'resolved';
+    if (c.action === 'reopen') status = 'open';
+  }
+  return status;
+}
+
 module.exports = {
   getGuidelines: async (req, res) => {
     res.json({ guidelines: DEFAULT_GUIDELINES });
@@ -55,8 +84,6 @@ module.exports = {
       const result = await runAnalysis({ files, guidelines, scope });
       // Persist review + findings
       const sequelize = require('../config/Database');
-      const Review = require('../models/review');
-      const ReviewFinding = require('../models/review_finding');
       const saved = await sequelize.transaction(async (t) => {
         const ownerId = req.user?.id || null;
         const review = await Review.create({ scope, guidelines, user_id: ownerId, meta: { ...(result.meta || {}), userId: ownerId } }, { transaction: t });
@@ -94,8 +121,6 @@ module.exports = {
       const result = await runAnalysis({ files, scope: 'incremental' });
       // Persist review + findings
       const sequelize = require('../config/Database');
-      const Review = require('../models/review');
-      const ReviewFinding = require('../models/review_finding');
       const saved = await sequelize.transaction(async (t) => {
         const ownerId = req.user?.id || null;
         const review = await Review.create({ scope: 'incremental', guidelines: DEFAULT_GUIDELINES, user_id: ownerId, meta: { ...result.meta, userId: ownerId, changedFiles: changes.map(c => c.filePath) } }, { transaction: t });
@@ -146,8 +171,6 @@ module.exports = {
       const result = await runAnalysis({ files, scope: 'repository-sample' });
       // Persist review + findings
       const sequelize = require('../config/Database');
-      const Review = require('../models/review');
-      const ReviewFinding = require('../models/review_finding');
       const saved = await sequelize.transaction(async (t) => {
         const ownerId = req.user?.id || null;
         const review = await Review.create({ scope: 'repository-sample', guidelines: DEFAULT_GUIDELINES, user_id: ownerId, meta: { ...result.meta, userId: ownerId, scanned: files.map(f => f.path) } }, { transaction: t });
@@ -174,6 +197,60 @@ module.exports = {
     } catch (err) {
       console.error('analyzeRepo error', err);
       return res.status(500).json({ error: 'Repo analyze failed', details: String(err?.message || err) });
+    }
+  },
+
+  // ===== Comments & Resolution API =====
+  listComments: async (req, res) => {
+    try {
+      const findingId = parseInt(req.params.findingId, 10);
+      await assertAccessToFinding(req, findingId);
+      const comments = await ReviewComment.findAll({ where: { finding_id: findingId }, order: [['createdAt','ASC']] });
+      const status = computeFindingStatus(comments);
+      res.json({ comments, status });
+    } catch (err) {
+      const code = err?.statusCode || 500;
+      res.status(code).json({ error: 'Failed to list comments', details: String(err?.message || err) });
+    }
+  },
+
+  addComment: async (req, res) => {
+    try {
+      const findingId = parseInt(req.params.findingId, 10);
+      const { finding, review } = await assertAccessToFinding(req, findingId);
+      const text = String(req.body?.text || '').trim();
+      if (!text) return res.status(400).json({ error: 'Text is required' });
+      const row = await ReviewComment.create({ review_id: review.id, finding_id: finding.id, user_id: req.user?.id || null, action: 'comment', text });
+      res.json(row);
+    } catch (err) {
+      const code = err?.statusCode || 500;
+      res.status(code).json({ error: 'Failed to add comment', details: String(err?.message || err) });
+    }
+  },
+
+  resolveFinding: async (req, res) => {
+    try {
+      const findingId = parseInt(req.params.findingId, 10);
+      const { finding, review } = await assertAccessToFinding(req, findingId);
+      await ReviewComment.create({ review_id: review.id, finding_id: finding.id, user_id: req.user?.id || null, action: 'resolve', text: null });
+      const comments = await ReviewComment.findAll({ where: { finding_id: finding.id }, order: [['createdAt','ASC']] });
+      res.json({ status: computeFindingStatus(comments) });
+    } catch (err) {
+      const code = err?.statusCode || 500;
+      res.status(code).json({ error: 'Failed to resolve finding', details: String(err?.message || err) });
+    }
+  },
+
+  reopenFinding: async (req, res) => {
+    try {
+      const findingId = parseInt(req.params.findingId, 10);
+      const { finding, review } = await assertAccessToFinding(req, findingId);
+      await ReviewComment.create({ review_id: review.id, finding_id: finding.id, user_id: req.user?.id || null, action: 'reopen', text: null });
+      const comments = await ReviewComment.findAll({ where: { finding_id: finding.id }, order: [['createdAt','ASC']] });
+      res.json({ status: computeFindingStatus(comments) });
+    } catch (err) {
+      const code = err?.statusCode || 500;
+      res.status(code).json({ error: 'Failed to reopen finding', details: String(err?.message || err) });
     }
   }
 };

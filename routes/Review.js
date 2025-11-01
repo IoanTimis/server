@@ -3,6 +3,7 @@ const router = express.Router();
 const ReviewController = require('../controllers/Review');
 const Review = require('../models/review');
 const ReviewFinding = require('../models/review_finding');
+const ReviewComment = require('../models/review_comment');
 const { IsLogged } = require('../middlewares/IsLogged');
 
 // Analyze provided files (in-body)
@@ -59,5 +60,11 @@ router.get('/:id', IsLogged, async (req, res) => {
 		res.status(500).json({ error: 'Failed to load review', details: String(e?.message || e) });
 	}
 });
+
+// Comments & resolution routes (scoped)
+router.get('/finding/:findingId/comments', IsLogged, ReviewController.listComments);
+router.post('/finding/:findingId/comments', IsLogged, ReviewController.addComment);
+router.post('/finding/:findingId/resolve', IsLogged, ReviewController.resolveFinding);
+router.post('/finding/:findingId/reopen', IsLogged, ReviewController.reopenFinding);
 
 module.exports = router;
